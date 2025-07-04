@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify
 import requests
+import os
 
 app = Flask(__name__)
 
-import os
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 
 @app.route("/")
@@ -13,21 +13,32 @@ def home():
 @app.route("/slack/events", methods=["POST"])
 def slack_events():
     data = request.get_json(force=True)
-    print("📩 Slack Event:", data)  # 👈 Add this line
+    print("📩 Slack Event:", data)
 
+    # URL verification
     if data.get("type") == "url_verification":
         return jsonify({"challenge": data["challenge"]})
 
+    # Handle bot events
     if "event" in data:
         event = data["event"]
-        if event.get("type") == "app_mention":
+        event_type = event.get("type")
+
+        # Mentioned in a channel
+        if event_type == "app_mention":
             user = event["user"]
             channel = event["channel"]
             print(f"👤 Mention from user {user} in channel {channel}")
             send_buttons(user, channel)
 
-    return "", 200
+        # Direct message
+        elif event_type == "message" and event.get("channel_type") == "im" and "subtype" not in event:
+            user = event["user"]
+            channel = event["channel"]
+            print(f"📩 DM from user {user} in {channel}")
+            send_buttons(user, channel)
 
+    return "", 200
 
 def send_buttons(user, channel):
     headers = {
