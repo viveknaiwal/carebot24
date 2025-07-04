@@ -15,23 +15,28 @@ def slack_events():
     data = request.get_json(force=True)
     print("📩 Slack Event:", data)
 
-    # URL verification
+    # URL verification (for initial setup)
     if data.get("type") == "url_verification":
         return jsonify({"challenge": data["challenge"]})
 
-    # Handle bot events
     if "event" in data:
         event = data["event"]
+
+        # 🛑 Prevent infinite loops by ignoring bot's own messages
+        if "bot_id" in event:
+            print("🛑 Ignored bot message to prevent loop.")
+            return "", 200
+
         event_type = event.get("type")
 
-        # Mentioned in a channel
+        # Respond to @mentions in channels
         if event_type == "app_mention":
             user = event["user"]
             channel = event["channel"]
             print(f"👤 Mention from user {user} in channel {channel}")
             send_buttons(user, channel)
 
-        # Direct message
+        # Respond to DMs
         elif event_type == "message" and event.get("channel_type") == "im" and "subtype" not in event:
             user = event["user"]
             channel = event["channel"]
@@ -70,8 +75,8 @@ def send_buttons(user, channel):
         "blocks": blocks
     }
 
-    r = requests.post("https://slack.com/api/chat.postMessage", headers=headers, json=payload)
-    print("📤 Slack response:", r.status_code, r.text)
+    response = requests.post("https://slack.com/api/chat.postMessage", headers=headers, json=payload)
+    print("📤 Slack response:", response.status_code, response.text)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
