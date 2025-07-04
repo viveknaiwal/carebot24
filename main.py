@@ -12,12 +12,8 @@ def home():
 
 @app.route("/slack/events", methods=["POST"])
 def slack_events():
-    try:
-        data = request.get_json(force=True)
-        print("📩 Incoming JSON:", data)
-    except Exception as e:
-        print("❌ Error parsing JSON:", e)
-        return "", 400
+    data = request.get_json(force=True)
+    print("📩 Slack Event:", data)  # 👈 Add this line
 
     if data.get("type") == "url_verification":
         return jsonify({"challenge": data["challenge"]})
@@ -27,9 +23,11 @@ def slack_events():
         if event.get("type") == "app_mention":
             user = event["user"]
             channel = event["channel"]
+            print(f"👤 Mention from user {user} in channel {channel}")
             send_buttons(user, channel)
 
     return "", 200
+
 
 def send_buttons(user, channel):
     headers = {
